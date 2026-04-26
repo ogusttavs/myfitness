@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getSupabaseBrowserClient } from './client';
 import { useSession } from './useSession';
@@ -17,12 +16,13 @@ export interface WorkspaceMembership {
  * - Atleta: o próprio workspace
  * - Coach: precisa selecionar (ver useCoachAtletas) — aqui retorna null se for só coach
  *
- * Também garante que o protocolo Modo Caverna está semeado no workspace.
  * Erros silenciosos (não derrubam a tela).
+ *
+ * NÃO faz auto-seed do protocolo. Plano de treino e dieta agora são
+ * sempre criados pelo coach via painel.
  */
 export function useActiveWorkspace() {
   const { user, loading: sessionLoading } = useSession();
-  const [seeding, setSeeding] = useState(false);
 
   const query = useQuery({
     queryKey: ['workspace:active', user?.id],
@@ -67,48 +67,9 @@ export function useActiveWorkspace() {
     retry: 1,
   });
 
-  // garante seed do protocolo
-  useEffect(() => {
-    const ws = query.data;
-    if (!ws || !ws.is_athlete || seeding) return;
-    let cancelled = false;
-    (async () => {
-      setSeeding(true);
-      try {
-        const supabase = getSupabaseBrowserClient();
-        const { data: hasPlan, error: planError } = await supabase
-          .from('workout_plans')
-          .select('id')
-          .eq('workspace_id', ws.id)
-          .eq('active', true)
-          .maybeSingle();
-        if (planError) {
-          // eslint-disable-next-line no-console
-          console.warn('[workspace] check plan error:', planError);
-          return;
-        }
-        if (!hasPlan && !cancelled) {
-          const { error: seedError } = await supabase.rpc('seed_modo_caverna_protocol', { ws: ws.id } as never);
-          if (seedError) {
-            // eslint-disable-next-line no-console
-            console.warn('[workspace] seed error:', seedError);
-          }
-        }
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn('[workspace] seed exception:', e);
-      } finally {
-        if (!cancelled) setSeeding(false);
-      }
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query.data?.id]);
-
   return {
     workspace: query.data ?? null,
     loading: sessionLoading || query.isLoading,
-    seeding,
     error: query.error,
   };
 }

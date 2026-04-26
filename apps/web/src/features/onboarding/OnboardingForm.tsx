@@ -84,7 +84,18 @@ export function OnboardingForm() {
         .from('weight_logs')
         .insert({ workspace_id: workspace.id, weight_kg: weightNum } as never);
 
-      qc.invalidateQueries({ queryKey: ['athlete:profile'] });
+      // Atualiza cache otimisticamente — evita race condition do guard
+      qc.setQueryData(['athlete:profile', user.id, workspace.id], {
+        fullName: name.trim(),
+        age: ageNum,
+        heightCm: heightNum,
+        weightKg: weightNum,
+        level,
+        goal,
+        weeklyFrequency: freqNum,
+      });
+      // Refetch em background pra confirmar
+      await qc.refetchQueries({ queryKey: ['athlete:profile'] });
       qc.invalidateQueries({ queryKey: ['weight_logs'] });
 
       router.replace('/');

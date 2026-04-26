@@ -1,10 +1,11 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, Loader2, Dumbbell, UtensilsCrossed, Scale, Camera } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { ChevronLeft, Loader2, Dumbbell, UtensilsCrossed, Scale, Camera, Flame, Check } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AuthGuard } from '@/components/AuthGuard';
+import { Button } from '@ui/button';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 const dayMonth = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' });
@@ -19,6 +20,36 @@ export default function CoachAtletaPage({ params }: { params: Promise<{ workspac
 }
 
 function Content({ workspaceId }: { workspaceId: string }) {
+  const qc = useQueryClient();
+
+  // Verifica se atleta já tem plano ativo
+  const planCheck = useQuery({
+    queryKey: ['coach:planCheck', workspaceId],
+    queryFn: async (): Promise<{ hasWorkout: boolean; hasMeal: boolean }> => {
+      const supabase = getSupabaseBrowserClient();
+      const [{ data: w }, { data: m }] = await Promise.all([
+        supabase.from('workout_plans').select('id').eq('workspace_id', workspaceId).eq('active', true).maybeSingle(),
+        supabase.from('meal_plans').select('id').eq('workspace_id', workspaceId).eq('active', true).maybeSingle(),
+      ]);
+      return { hasWorkout: !!w, hasMeal: !!m };
+    },
+  });
+
+  const [seedJustRan, setSeedJustRan] = useState(false);
+  const seedMutation = useMutation({
+    mutationFn: async () => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.rpc('seed_modo_caverna_protocol', { ws: workspaceId } as never);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setSeedJustRan(true);
+      qc.invalidateQueries({ queryKey: ['coach:planCheck', workspaceId] });
+      qc.invalidateQueries({ queryKey: ['coach:summary', workspaceId] });
+      setTimeout(() => setSeedJustRan(false), 2500);
+    },
+  });
+
   const summary = useQuery({
     queryKey: ['coach:summary', workspaceId],
     queryFn: async () => {
@@ -114,6 +145,54 @@ function Content({ workspaceId }: { workspaceId: string }) {
           ) : null}
           {s.athleteData?.goal ? <p className="text-mute text-xs mt-1">{s.athleteData.goal}</p> : null}
         </header>
+
+        {/* Status do plano + ação de criar */}
+        <section className="mb-6">
+          <h2 className="text-mute text-xs uppercase tracking-widest mb-3">plano</h2>
+          {planCheck.data ? (
+            planCheck.data.hasWorkout && planCheck.data.hasMeal ? (
+              <div className="rounded-lg bg-cave border border-moss/30 p-4">
+                <div className="flex items-center gap-2">
+                  <Check className="size-4 text-moss" />
+                  <p className="text-bone text-sm font-medium">Plano ativo</p>
+                </div>
+                <p className="text-mute text-xs mt-1">treino + dieta cadastrados</p>
+              </div>
+            ) : (
+              <div className="rounded-lg bg-cave border border-amberx/30 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Flame className="size-4 text-ember" />
+                  <p className="text-bone text-sm font-medium">Sem plano ativo</p>
+                </div>
+                <p className="text-mute text-xs mb-3">
+                  Aplique o protocolo Modo Caverna (5 dias de treino + 1.800 kcal de dieta) ou edite manualmente.
+                </p>
+                <Button
+                  variant="primary"
+                  size="md"
+                  className="w-full"
+                  onClick={() => seedMutation.mutate()}
+                  disabled={seedMutation.isPending}
+                >
+                  {seedMutation.isPending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : seedJustRan ? (
+                    <><Check className="size-4 mr-2" /> aplicado!</>
+                  ) : (
+                    'aplicar Modo Caverna'
+                  )}
+                </Button>
+                {seedMutation.error ? (
+                  <p className="text-blood text-xs mt-2">
+                    erro: {(seedMutation.error as Error).message}
+                  </p>
+                ) : null}
+              </div>
+            )
+          ) : (
+            <div className="h-20 rounded-lg bg-elevated/40 animate-pulse" />
+          )}
+        </section>
 
         {/* KPIs da semana */}
         <h2 className="text-mute text-xs uppercase tracking-widest mb-3">últimos 7 dias</h2>

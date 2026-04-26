@@ -26,8 +26,8 @@ export interface ProfileState {
  * Considera "onboarded" se tem nome E peso preenchidos.
  */
 export function useAthleteProfile(): ProfileState {
-  const { user } = useSession();
-  const { workspace } = useActiveWorkspace();
+  const { user, loading: sessionLoading } = useSession();
+  const { workspace, loading: wsLoading } = useActiveWorkspace();
   const ws = workspace?.id ?? null;
 
   const query = useQuery({
@@ -64,5 +64,9 @@ export function useAthleteProfile(): ProfileState {
 
   const data = query.data ?? null;
   const hasOnboarded = !!(data && data.fullName.trim() && data.weightKg && data.heightCm && data.age);
-  return { data, hasOnboarded, loading: query.isLoading };
+  // Loading se ainda não temos sessão, workspace ou se a query está carregando.
+  // Sem isso, o OnboardingGuard pode pensar que terminou (loading=false) com data=null
+  // (porque o useQuery está disabled aguardando o workspace) e fazer loop.
+  const loading = sessionLoading || wsLoading || (!!user && !!ws && query.isLoading);
+  return { data, hasOnboarded, loading };
 }
