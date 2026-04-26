@@ -1,8 +1,10 @@
 # CLAUDE.md — Modo Caverna (briefing rápido)
 
-> **Antes de fazer QUALQUER coisa, leia:**
-> 1. [docs/STATUS.md](docs/STATUS.md) — estado atual (done/pending/bloqueios) ⭐
-> 2. [docs/ONBOARDING.md](docs/ONBOARDING.md) — guia completo (stack, decisões, comandos)
+> **Antes de fazer QUALQUER coisa, leia em ordem:**
+> 1. [docs/SESSION-NOTES.md](docs/SESSION-NOTES.md) — **PICKUP POINT** da última sessão ⭐⭐
+> 2. [docs/STATUS.md](docs/STATUS.md) — estado atual (done/pending/bloqueios)
+> 3. [docs/REVIEW.md](docs/REVIEW.md) — review AIOX (QA + Arch + UX) com ações priorizadas
+> 4. [docs/ONBOARDING.md](docs/ONBOARDING.md) — guia completo (stack, decisões, comandos)
 >
 > Este arquivo é só o resumo de 30 segundos.
 
