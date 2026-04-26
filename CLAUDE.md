@@ -1,6 +1,10 @@
 # CLAUDE.md — Modo Caverna (briefing rápido)
 
-> **Antes de fazer QUALQUER coisa, leia [docs/ONBOARDING.md](docs/ONBOARDING.md).** Este arquivo é só o resumo de 30 segundos.
+> **Antes de fazer QUALQUER coisa, leia:**
+> 1. [docs/STATUS.md](docs/STATUS.md) — estado atual (done/pending/bloqueios) ⭐
+> 2. [docs/ONBOARDING.md](docs/ONBOARDING.md) — guia completo (stack, decisões, comandos)
+>
+> Este arquivo é só o resumo de 30 segundos.
 
 ## O que é
 
