@@ -16,9 +16,9 @@ export interface WorkspaceMembership {
  * Retorna o workspace ativo do usuário corrente.
  * - Atleta: o próprio workspace
  * - Coach: precisa selecionar (ver useCoachAtletas) — aqui retorna null se for só coach
- * - Athlete + coach (em outros workspaces): retorna o próprio (atleta) por padrão
  *
  * Também garante que o protocolo Modo Caverna está semeado no workspace.
+ * Erros silenciosos (não derrubam a tela).
  */
 export function useActiveWorkspace() {
   const { user, loading: sessionLoading } = useSession();
@@ -29,19 +29,42 @@ export function useActiveWorkspace() {
     enabled: !!user,
     queryFn: async (): Promise<WorkspaceMembership | null> => {
       const supabase = getSupabaseBrowserClient();
-      // tenta buscar o próprio workspace (atleta)
-      const { data: own, error } = await supabase
-        .from('workspaces')
-        .select('id, athlete_user_id')
-        .eq('athlete_user_id', user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      if (own) {
-        return { id: own.id, athlete_user_id: own.athlete_user_id, is_athlete: true, is_coach: false };
+      try {
+        const { data: own, error } = await supabase
+          .from('workspaces')
+          .select('id, athlete_user_id')
+          .eq('athlete_user_id', user!.id)
+          .maybeSingle();
+        if (error) {
+          // eslint-disable-next-line no-console
+          console.warn('[workspace] read error:', error);
+          return null;
+        }
+        if (!own) {
+          // Atleta logou mas trigger não criou workspace — cria agora.
+          const { data: created, error: createError } = await supabase
+            .from('workspaces')
+            .insert({ athlete_user_id: user!.id } as never)
+            .select('id, athlete_user_id')
+            .maybeSingle();
+          if (createError) {
+            // eslint-disable-next-line no-console
+            console.warn('[workspace] create error:', createError);
+            return null;
+          }
+          if (!created) return null;
+          const c = created as { id: string; athlete_user_id: string };
+          return { id: c.id, athlete_user_id: c.athlete_user_id, is_athlete: true, is_coach: false };
+        }
+        const row = own as { id: string; athlete_user_id: string };
+        return { id: row.id, athlete_user_id: row.athlete_user_id, is_athlete: true, is_coach: false };
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('[workspace] exception:', e);
+        return null;
       }
-      // não é atleta — talvez seja coach (sem workspace próprio)
-      return null;
     },
+    retry: 1,
   });
 
   // garante seed do protocolo
@@ -53,15 +76,27 @@ export function useActiveWorkspace() {
       setSeeding(true);
       try {
         const supabase = getSupabaseBrowserClient();
-        const { data: hasPlan } = await supabase
+        const { data: hasPlan, error: planError } = await supabase
           .from('workout_plans')
           .select('id')
           .eq('workspace_id', ws.id)
           .eq('active', true)
           .maybeSingle();
-        if (!hasPlan && !cancelled) {
-          await supabase.rpc('seed_modo_caverna_protocol', { ws: ws.id });
+        if (planError) {
+          // eslint-disable-next-line no-console
+          console.warn('[workspace] check plan error:', planError);
+          return;
         }
+        if (!hasPlan && !cancelled) {
+          const { error: seedError } = await supabase.rpc('seed_modo_caverna_protocol', { ws: ws.id } as never);
+          if (seedError) {
+            // eslint-disable-next-line no-console
+            console.warn('[workspace] seed error:', seedError);
+          }
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('[workspace] seed exception:', e);
       } finally {
         if (!cancelled) setSeeding(false);
       }
