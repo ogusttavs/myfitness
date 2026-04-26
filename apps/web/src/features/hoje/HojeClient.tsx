@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ArrowRight, Flame, Droplet, Pill, Plus, Minus, Check, Clock, MessageSquare, ChevronRight } from 'lucide-react';
 import {
-  profile,
   meals,
   macrosTarget,
   mealKcal,
@@ -17,6 +16,7 @@ import {
   WATER_CUP_ML,
   type Meal,
 } from '@/data/protocol';
+import { useAthleteProfile } from '@/lib/supabase/useAthleteProfile';
 import { useMealLog, todayDateString } from '@/stores/mealLog';
 import { useWellness } from '@/stores/wellness';
 import { MealDetailSheet } from '@/features/diet/MealDetailSheet';
@@ -33,6 +33,7 @@ export function HojeClient() {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
 
+  const { data: athlete } = useAthleteProfile();
   const [openMeal, setOpenMeal] = useState<Meal | null>(null);
 
   const today = new Date();
@@ -296,13 +297,22 @@ export function HojeClient() {
         </div>
       </section>
 
-      <p className="text-mute text-xs text-center mt-6">
-        Olá, {profile.name}. {profile.weightKg}kg · {profile.heightM}m · {profile.level}
-      </p>
+      {athlete && athlete.fullName ? (
+        <p className="text-mute text-xs text-center mt-6">
+          Olá, {athlete.fullName.split(' ')[0]}.
+          {athlete.weightKg ? ` ${athlete.weightKg}kg` : ''}
+          {athlete.heightCm ? ` · ${(athlete.heightCm / 100).toFixed(2)}m` : ''}
+          {athlete.level ? ` · ${capitalize(athlete.level)}` : ''}
+        </p>
+      ) : null}
 
       <MealDetailSheet meal={openMeal} date={todayStr} onClose={() => setOpenMeal(null)} />
     </>
   );
+}
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function periodEs(p: 'morning' | 'afternoon' | 'evening' | 'night' | 'any'): string {
