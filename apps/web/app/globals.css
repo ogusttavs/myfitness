@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    background-color: #0A0A0B;
+    color: #F5F5F4;
+    overscroll-behavior: none;
+  }
+  body {
+    -webkit-tap-highlight-color: transparent;
+    font-family: var(--font-inter), system-ui, sans-serif;
+  }
+  /* Touch feedback global em buttons/links */
+  button, a {
+    touch-action: manipulation;
+  }
+  /* Scrollbar caverna */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2A2A2E;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #FF6B1A;
+  }
+  /* Selection com ember */
+  ::selection {
+    background: #FF6B1A;
+    color: #0A0A0B;
+  }
+}
+
+@layer utilities {
+  .glow-ember {
+    box-shadow: 0 0 32px rgba(255, 107, 26, 0.35);
+  }
+  .glow-moss {
+    box-shadow: 0 0 24px rgba(74, 222, 128, 0.25);
+  }
+}

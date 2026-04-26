@@ -1,0 +1,73 @@
+{
+  "$schema": "aiox/spec-pipeline/critique.v1",
+  "critiquedBy": "@qa (Quinn)",
+  "critiquedAt": "2026-04-26",
+  "input": "docs/spec/spec.md",
+  "dimensions": {
+    "completeness": {
+      "score": 4.5,
+      "notes": [
+        "15 FRs cobrem todos os domínios (perfil, dieta, treino, execução, timer, fotos, coach).",
+        "Acceptance criteria por épico mensuráveis.",
+        "Falta detalhar fluxo de erro do timer quando notification permission é negada — mitigar com fallback haptic only."
+      ]
+    },
+    "clarity": {
+      "score": 4.0,
+      "notes": [
+        "Rastreabilidade explícita (FR/NFR/CON/CDD/R) — Article IV ✅.",
+        "Glossário implícito (workspace, plano, sessão, snapshot) está claro.",
+        "Tabela de RLS poderia mostrar 1 exemplo SQL pra reduzir ambiguidade — deferido para SCHEMA.md."
+      ]
+    },
+    "feasibility": {
+      "score": 4.5,
+      "notes": [
+        "Stack Expo + Supabase + NativeWind é maduro e bem documentado.",
+        "Riscos identificados (RISK-01..04) com mitigação concreta.",
+        "Effort 18-22 stories em 6 epics é realista para 1 dev em ~6-8 semanas part-time."
+      ]
+    },
+    "testability": {
+      "score": 4.0,
+      "notes": [
+        "Timer engine testável (CDD-01 — classe pura).",
+        "RLS testável via pgtap.",
+        "Métricas de sucesso quantitativas (drift <1s/min, registro <8s).",
+        "Falta cenário de teste para coach editar enquanto atleta executa — adicionar como acceptance no EPIC-5."
+      ]
+    },
+    "risk_coverage": {
+      "score": 4.0,
+      "notes": [
+        "Top 4 riscos mapeados com severity.",
+        "RLS leak (HIGH) tem mitigação obrigatória (pgtap no CI) — robusto.",
+        "Não há plano explícito para 'coach perde acesso' (revoke do invite) — adicionar story em EPIC-2."
+      ]
+    }
+  },
+  "averageScore": 4.2,
+  "verdict": "APPROVED",
+  "rationale": "Score >=4.0 em todas as dimensões. Spec é executável, rastreável e tem cobertura de risco adequada. Itens menores (fallback haptic, revoke do coach, exemplo de RLS) são adições e não bloqueiam.",
+  "actionItems": [
+    {
+      "id": "AI-01",
+      "type": "addition",
+      "description": "Adicionar acceptance: timer faz fallback para haptic-only se notification permission for negada.",
+      "target": "EPIC-5"
+    },
+    {
+      "id": "AI-02",
+      "type": "addition",
+      "description": "Adicionar story: atleta revoga acesso do coach (invalida coach_user_id no workspace).",
+      "target": "EPIC-2"
+    },
+    {
+      "id": "AI-03",
+      "type": "addition",
+      "description": "Acceptance EPIC-5: coach edita plano enquanto atleta executa — sessão atual usa snapshot, próxima usa novo.",
+      "target": "EPIC-5"
+    }
+  ],
+  "nextPhase": "plan"
+}

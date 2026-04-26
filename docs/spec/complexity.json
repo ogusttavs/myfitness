@@ -1,0 +1,191 @@
+{
+  "$schema": "aiox/spec-pipeline/complexity.v1",
+  "assessedBy": "@architect (Aria)",
+  "assessedAt": "2026-04-26",
+  "input": "docs/spec/requirements.json",
+  "dimensions": {
+    "scope": {
+      "score": 4,
+      "rationale": "15 FRs distribuídos em 6 domínios: profile, diet, workout, execution-logging, timer, progress-photos, coach-collaboration. Não é feature isolada — é app inteiro.",
+      "evidence": ["FR-01..FR-15", "6 epics estimados"]
+    },
+    "integration": {
+      "score": 2,
+      "rationale": "Sem APIs externas no MVP. Únicas integrações são Supabase (BaaS) e APIs nativas (notifications, haptics, camera). Tudo de primeira parte.",
+      "evidence": ["CON-03 (sem integrações externas)", "expo-notifications (local only no MVP)"]
+    },
+    "infrastructure": {
+      "score": 3,
+      "rationale": "Mobile build pipeline (EAS), Supabase (DB + Auth + Storage + RLS), push notifications setup, OTA updates. Padrão mas exige config disciplinada.",
+      "evidence": ["NFR-01 (Expo)", "NFR-05 (Supabase auth)", "NFR-06 (Postgres + RLS)", "NFR-07 (notifications)"]
+    },
+    "knowledge": {
+      "score": 3,
+      "rationale": "CRUD + state management é trivial. Cronômetro com background-execution + drift accuracy + offline-first é não-trivial. RLS para coach<>atleta exige modelagem cuidadosa.",
+      "evidence": ["FR-08 (timer com background)", "NFR-04 (offline-first)", "NFR-02 (drift <1s/min)"]
+    },
+    "risk": {
+      "score": 2,
+      "rationale": "App pessoal, sem dados sensíveis (não é PII regulada, não é financeiro, não é saúde clínica). Falha não tem blast radius além do próprio usuário. Single-tenant reduz risco de data leak.",
+      "evidence": ["CON-02 (single-user)", "Sem PCI/HIPAA"]
+    }
+  },
+  "totalScore": 14,
+  "class": "STANDARD",
+  "classDecision": {
+    "rule": "9 <= score <= 15 → STANDARD",
+    "phasesRequired": ["gather", "assess", "research", "spec", "critique", "plan"],
+    "skipResearch": false,
+    "skipPlan": false
+  },
+  "architectureDecision": {
+    "stack": {
+      "client": {
+        "framework": "Expo SDK (latest stable) + React Native + TypeScript",
+        "router": "expo-router (file-based)",
+        "styling": "NativeWind v4 (Tailwind RN)",
+        "state": {
+          "client": "Zustand (timer state, UI ephemeral)",
+          "server": "TanStack Query v5 (com persistQueryClient pra offline)"
+        },
+        "forms": "react-hook-form + zod",
+        "animations": "react-native-reanimated v3",
+        "icons": "lucide-react-native",
+        "fonts": ["Inter (Google Fonts via expo-font)", "Bebas Neue (números do timer)"]
+      },
+      "nativeModules": {
+        "notifications": "expo-notifications (local notifications para fim de descanso)",
+        "haptics": "expo-haptics (vibração)",
+        "audio": "expo-audio (som do timer)",
+        "keepAwake": "expo-keep-awake (tela acesa durante treino)",
+        "camera": "expo-image-picker + expo-camera (foto de progresso)",
+        "imageManipulator": "expo-image-manipulator (compressão antes do upload)",
+        "mmkv": "react-native-mmkv (persistência rápida do timer state)"
+      },
+      "backend": {
+        "platform": "Supabase",
+        "components": {
+          "db": "Postgres 15+",
+          "auth": "Supabase Auth (email + magic link)",
+          "storage": "Supabase Storage (bucket privado para fotos de progresso)",
+          "edgeFunctions": "Deno (apenas se necessário — MVP tenta evitar)",
+          "rls": "Row Level Security em TODAS as tabelas"
+        },
+        "client": "@supabase/supabase-js v2"
+      },
+      "build": {
+        "platform": "EAS Build (Expo Application Services)",
+        "channels": ["development", "preview", "production"],
+        "ota": "EAS Update"
+      },
+      "tooling": {
+        "package_manager": "pnpm",
+        "lint": "eslint (expo config) + prettier",
+        "typecheck": "tsc --noEmit",
+        "tests": "jest + jest-expo + @testing-library/react-native",
+        "e2e": "maestro (lightweight, deferido pra v2)"
+      }
+    },
+    "architectureStyle": "Layered (presentation → use-case → data) + offline-first",
+    "moduleStructure": [
+      "app/                    # expo-router routes",
+      "src/features/           # bounded contexts (diet, workout, execution, timer, photos, coach)",
+      "src/components/         # design system primitives",
+      "src/lib/supabase/       # client + types + RLS helpers",
+      "src/lib/timer/          # timer engine (testável isolado)",
+      "src/stores/             # zustand stores",
+      "src/queries/            # TanStack Query hooks por entidade",
+      "src/theme/              # tokens Modo Caverna",
+      "supabase/migrations/    # SQL migrations",
+      "supabase/seed.sql       # seed do PDF"
+    ],
+    "criticalDesignDecisions": [
+      {
+        "id": "CDD-01",
+        "title": "Timer engine isolado e testável",
+        "decision": "Timer roda como classe TS pura (não acoplada a hooks) com tick via setInterval + correção de drift via Date.now(). Hook React expõe estado. Permite teste unitário sem RN runtime.",
+        "rationale": "FR-08 + NFR-02 (drift <1s/min) — não dá pra testar isso em e2e mobile com confiabilidade."
+      },
+      {
+        "id": "CDD-02",
+        "title": "Background continuation via notification scheduling",
+        "decision": "Ao iniciar timer, agenda notification local para t=0. Se app voltar ao foreground, calcula tempo restante por delta de timestamp. Não usa background tasks (custo + complexidade).",
+        "rationale": "iOS mata JS em background. Notification agendada é confiável e bate em t=0 mesmo com app fechado."
+      },
+      {
+        "id": "CDD-03",
+        "title": "Offline-first via TanStack Query + MMKV",
+        "decision": "Mutations otimistas + persistQueryClient com MMKV. Conflict resolution: last-write-wins por updated_at no servidor; cliente reaplica se conflito.",
+        "rationale": "NFR-04 — atleta na academia sem sinal precisa registrar séries."
+      },
+      {
+        "id": "CDD-04",
+        "title": "RLS por workspace_id (atleta + coach vinculado)",
+        "decision": "Tabela workspaces com athlete_user_id + coach_user_id (nullable). Toda tabela de dados tem workspace_id. RLS: USING (workspace_id IN (SELECT id FROM workspaces WHERE athlete_user_id = auth.uid() OR coach_user_id = auth.uid())).",
+        "rationale": "Modelo simples para single-tenant + 1 coach. Escala pra multi-tenant trocando 'workspace = atleta' por 'workspace = grupo'."
+      },
+      {
+        "id": "CDD-05",
+        "title": "Catálogo global vs custom de exercícios/alimentos",
+        "decision": "Tabela exercises_catalog (público, read-only) + tabela exercise_variations (custom por workspace). Mesmo para foods. Coach cria variations no seu workspace; catálogo cresce com seeds.",
+        "rationale": "FR-03 + FR-06. Evita duplicação massiva e permite seed do PDF como catálogo."
+      },
+      {
+        "id": "CDD-06",
+        "title": "Plano = template, Sessão = instância",
+        "decision": "workout_plans/meal_plans são templates editáveis. workout_sessions/meal_logs são execuções imutáveis (com snapshot dos parâmetros do plano no momento). Coach edita plano não retroage histórico.",
+        "rationale": "Auditoria + análise temporal correta. Coach trocar reps de 10 pra 12 não pode reescrever sessões passadas."
+      }
+    ],
+    "topRisks": [
+      {
+        "id": "RISK-01",
+        "risk": "Timer drift em background no iOS",
+        "mitigation": "CDD-02 + tests com fake timers + smoke test manual em device real",
+        "severity": "MEDIUM"
+      },
+      {
+        "id": "RISK-02",
+        "risk": "RLS mal escrita expõe dados entre workspaces",
+        "mitigation": "Pgtap tests obrigatórios para cada policy + revisão @data-engineer",
+        "severity": "HIGH"
+      },
+      {
+        "id": "RISK-03",
+        "risk": "Sync de mutations offline causa duplicatas",
+        "mitigation": "Idempotency key (UUID gerado no cliente) em todas mutations",
+        "severity": "MEDIUM"
+      },
+      {
+        "id": "RISK-04",
+        "risk": "EAS Build cota / custo em iteração inicial",
+        "mitigation": "Expo Go pra dev local; EAS só para preview/produção",
+        "severity": "LOW"
+      }
+    ]
+  },
+  "estimatedEffort": {
+    "stories": "18-22",
+    "epics": 6,
+    "epicsBreakdown": [
+      "EPIC-1: Foundation (Expo setup, theme, auth, Supabase)",
+      "EPIC-2: Profile + Coach Invite",
+      "EPIC-3: Diet (plano + variações + log)",
+      "EPIC-4: Workout (plano + variações)",
+      "EPIC-5: Execution + Timer (séries, carga, reps, cronômetro)",
+      "EPIC-6: Progress (fotos + dashboard coach)"
+    ],
+    "criticalPath": "EPIC-1 → EPIC-4 → EPIC-5 (timer é o coração do app)"
+  },
+  "nextPhase": "research",
+  "researchTopics": [
+    "expo-notifications: agendamento confiável + comportamento iOS/Android background",
+    "Timer drift correction patterns em React Native",
+    "Supabase RLS patterns para colaboração 1-N (coach-atleta)",
+    "TanStack Query persistQueryClient + MMKV: setup e edge cases",
+    "NativeWind v4 + dark mode default + design tokens em runtime",
+    "Bebas Neue / Space Grotesk via expo-font: performance e fallback",
+    "expo-image-manipulator: pipeline de compressão pré-upload",
+    "Padrões de UI para registro rápido de série em academia (ergonomia, touch targets, sem teclado)"
+  ]
+}

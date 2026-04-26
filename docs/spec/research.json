@@ -1,0 +1,101 @@
+{
+  "$schema": "aiox/spec-pipeline/research.v1",
+  "researchedBy": "@analyst (Alex)",
+  "researchedAt": "2026-04-26",
+  "topics": [
+    {
+      "id": "R-01",
+      "topic": "Timer com background continuation no Expo",
+      "findings": [
+        "iOS suspende JS em background após ~30s. Android tem mais flexibilidade mas também restringe Doze mode.",
+        "Padrão recomendado: agendar `expo-notifications` local com trigger por seconds. Notification dispara mesmo com app fechado.",
+        "Para UI restaurar ao foreground: salvar { startedAt: Date.now(), durationMs } em MMKV; ao voltar, calcular elapsed = Date.now() - startedAt e renderizar timer remanescente.",
+        "Drift correction: usar Date.now() como fonte da verdade, setInterval só pro re-render (200ms tick). Nunca somar deltas (acumula erro).",
+        "Bibliotecas a evitar: react-native-background-timer (deprecated, problemas no SDK 50+).",
+        "Som: agendar notification com sound: true + arquivo .wav curto custom para alerta característico. Haptic via expo-haptics em paralelo no foreground."
+      ],
+      "decision": "Implementar timer engine próprio (CDD-01) + scheduled notification (CDD-02) + MMKV persistence. Sem libs de timer.",
+      "sources": ["Expo docs: Notifications, AppState", "Issue #21345 expo/expo (background timer)"]
+    },
+    {
+      "id": "R-02",
+      "topic": "Supabase RLS para colaboração coach<>atleta",
+      "findings": [
+        "Padrão workspace/tenant: coluna workspace_id em todas tabelas + helper function workspace_member(uid).",
+        "Performance: RLS USING com EXISTS subquery escala bem com índice em (workspace_id, user_id).",
+        "Auth.uid() é cached por request — usar dentro de SECURITY DEFINER function para reuso.",
+        "Pgtap (extensão pg_tap) permite testar policies como qualquer SQL test. Obrigatório dado RISK-02.",
+        "Storage RLS herda mesmo padrão: bucket policy + path baseado em workspace_id (ex.: progress-photos/{workspace_id}/{photo_id}.jpg)."
+      ],
+      "decision": "Modelo workspaces (athlete_user_id, coach_user_id). Helper function is_workspace_member(workspace_id). Pgtap obrigatório no CI.",
+      "sources": ["Supabase docs: RLS examples, Postgres SECURITY DEFINER", "Blog: 'Multi-tenant RLS at scale' supabase.com"]
+    },
+    {
+      "id": "R-03",
+      "topic": "Offline-first: TanStack Query + MMKV",
+      "findings": [
+        "@tanstack/query-async-storage-persister + react-native-mmkv = ~10x mais rápido que AsyncStorage.",
+        "Mutations offline: useMutation com onMutate (optimistic update) + retry: Infinity quando navigator.onLine === false.",
+        "Idempotency: gerar UUID no cliente e enviar como client_id. Backend faz UPSERT ON CONFLICT (client_id) DO NOTHING.",
+        "Conflict resolution: server-side trigger compara updated_at; cliente aceita resposta do servidor como verdade.",
+        "Network detection: @react-native-community/netinfo dispara reconnect → query invalidation → mutations replay automático."
+      ],
+      "decision": "Stack: TanStack Query v5 + MMKV persister + netinfo. UUID client-side em todas mutations.",
+      "sources": ["TanStack Query docs: persistence", "MMKV docs", "Discussion: tanstack/query #4252"]
+    },
+    {
+      "id": "R-04",
+      "topic": "NativeWind v4 + dark mode + design tokens",
+      "findings": [
+        "NativeWind v4 (built on react-native-css-interop) suporta CSS variables nativas — permite design tokens runtime.",
+        "Dark-only: setar `dark` class no root e usar apenas variantes dark: ou criar um único set de tokens (mais simples no MVP).",
+        "Recomendado: `tailwind.config.js` com colors mapeados para os tokens Modo Caverna.",
+        "Performance: variantes condicionais (dark:, ios:) são compile-time no NativeWind v4 — sem custo runtime.",
+        "Fonts: `expo-font` + `useFonts` hook + Splash até carregar. Bebas Neue = ~30KB; carrega em <100ms."
+      ],
+      "decision": "NativeWind v4. Sem variantes dark — tokens fixos. Fonts via expo-font no _layout.tsx root.",
+      "sources": ["NativeWind v4 docs", "Expo Fonts guide"]
+    },
+    {
+      "id": "R-05",
+      "topic": "Expo image pipeline: camera, picker, compressão",
+      "findings": [
+        "expo-image-picker > expo-camera quando UX nativa basta. Para foto de progresso, picker basta (galeria/câmera).",
+        "expo-image-manipulator: resize + compress JPEG; chain de actions ([{resize:{width:1080}}], compress: 0.8).",
+        "Upload para Supabase Storage: via signed URL (PUT direto) ou via supabase-js .upload(). .upload() é OK para arquivos <5MB.",
+        "Path convention: {workspace_id}/progress/{yyyy-mm-dd}_{angle}_{uuid}.jpg",
+        "expo-image (vs Image RN): cache + decoding nativos, melhor para galeria com várias fotos."
+      ],
+      "decision": "expo-image-picker + expo-image-manipulator (1080p, q=0.8). Upload via supabase-js. Render com expo-image.",
+      "sources": ["Expo Image docs", "Supabase Storage upload patterns"]
+    },
+    {
+      "id": "R-06",
+      "topic": "UX para registro rápido de séries em academia",
+      "findings": [
+        "Atleta com mãos suadas/luvas + ambiente barulhento. Touch targets >= 56pt recomendado (acima do AA padrão).",
+        "Evitar teclado numérico nativo — slow + ocupa metade da tela. Padrão: stepper buttons (-2.5/+2.5kg) + tap-to-edit fallback.",
+        "Reps: tap rápido (botão 'completou planejado') + override manual.",
+        "Histórico inline: 'última série: 60kg x 10' visível ABAIXO do input atual reduz ansiedade.",
+        "Confirmação de série dispara timer auto — sem botão extra. Reduz fricção FR-08.",
+        "Cor de feedback: ember pulse no card da série atual; verde no completado; cinza no pending."
+      ],
+      "decision": "Inputs como steppers grandes (+/- com long-press accel). Histórico inline. Confirmação dispara timer + scrolla pra próxima série.",
+      "sources": ["Hevy app UX teardown", "Strong app patterns", "Apple HIG Watch fitness"]
+    },
+    {
+      "id": "R-07",
+      "topic": "Push notifications locais: confiabilidade",
+      "findings": [
+        "iOS: notification agendada por trigger seconds dispara mesmo com app force-quitted. Confiável.",
+        "Android 12+: requer POST_NOTIFICATIONS permission (runtime). Doze mode pode atrasar até 9min em idle pesado — workaround: setExactAndAllowWhileIdle (já default no expo-notifications).",
+        "Som custom: assets em assets/sounds/timer-end.wav, registrado em app.json com expo-notifications.sounds.",
+        "Channels Android: criar channel 'rest-timer' com importância HIGH para garantir som mesmo em silencioso (opcional)."
+      ],
+      "decision": "expo-notifications com sound custom + channel rest-timer (HIGH). Permission request no primeiro uso do timer.",
+      "sources": ["Expo Notifications docs", "Android exact alarm guide"]
+    }
+  ],
+  "summary": "Todos os tópicos de risco têm padrão validado. Sem unknowns bloqueantes. Pronto para spec.md.",
+  "nextPhase": "spec"
+}

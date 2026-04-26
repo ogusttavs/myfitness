@@ -1,0 +1,179 @@
+{
+  "$schema": "aiox/spec-pipeline/requirements.v1",
+  "project": {
+    "name": "MyFitness — Modo Caverna",
+    "codename": "modo-caverna",
+    "type": "greenfield-mobile",
+    "owner": "Gustavo Silva",
+    "createdAt": "2026-04-26",
+    "source": "protocoloGustavo_modo_caverna.pdf"
+  },
+  "vision": "App mobile pessoal de gestão de treino e dieta com colaboração de coach. Atleta executa e registra; coach edita o protocolo e cadastra variações. Foco em fricção zero durante o treino (cronômetro automático, progressão de carga visível, registro rápido).",
+  "actors": [
+    {
+      "id": "athlete",
+      "name": "Atleta",
+      "description": "Usuário primário (Gustavo). Consome o plano, executa treinos, registra séries e refeições.",
+      "permissions": ["read:plan", "write:execution", "write:meal-log", "read:progress"]
+    },
+    {
+      "id": "coach",
+      "name": "Coach",
+      "description": "Convidado pelo atleta. Edita TUDO do plano (refeições, alimentos, exercícios, séries, reps, cargas-alvo, descansos) e cadastra variações.",
+      "permissions": ["read:*", "write:plan", "write:variations", "write:notes"]
+    }
+  ],
+  "functionalRequirements": [
+    {
+      "id": "FR-01",
+      "title": "Perfil do atleta",
+      "description": "CRUD de perfil: idade, peso, altura, nível, objetivo, frequência semanal. Histórico de pesagens.",
+      "priority": "MUST",
+      "seedFromPdf": { "idade": 22, "peso_kg": 80, "altura_m": 1.75, "nivel": "Avançado", "objetivo": "Hipertrofia + Perda de Gordura", "treinos_semana": 5 }
+    },
+    {
+      "id": "FR-02",
+      "title": "Plano alimentar com macros",
+      "description": "Calorias-alvo + distribuição de macros (P/C/G). Lista de refeições com itens (alimento, quantidade, unidade).",
+      "priority": "MUST",
+      "seedFromPdf": { "kcal": 1800, "proteina_g": 160, "carbo_g": 215, "gordura_g": 67, "refeicoes": 6 }
+    },
+    {
+      "id": "FR-03",
+      "title": "Variações e substituições de alimentos",
+      "description": "Coach cadastra alternativas equivalentes por item (ex.: 'arroz' → 'batata-doce 150g'). Atleta escolhe variação no momento da refeição.",
+      "priority": "MUST"
+    },
+    {
+      "id": "FR-04",
+      "title": "Registro de refeição",
+      "description": "Atleta marca refeição como feita, com timestamp, variação escolhida e nota opcional. Mostra aderência diária.",
+      "priority": "MUST"
+    },
+    {
+      "id": "FR-05",
+      "title": "Plano de treino semanal",
+      "description": "5 dias com nome (Push/Pull/Legs/Upper/Lower), exercícios ordenados, séries, reps-alvo, descanso, cardio opcional.",
+      "priority": "MUST",
+      "seedFromPdf": { "dias": ["Push", "Pull", "Legs", "Upper", "Lower"], "cardio_min": 20 }
+    },
+    {
+      "id": "FR-06",
+      "title": "Variações de exercícios",
+      "description": "Coach cadastra variações por exercício (ex.: 'Supino reto barra' → 'Supino reto halteres', 'Smith'). Atleta escolhe variação no dia da execução.",
+      "priority": "MUST"
+    },
+    {
+      "id": "FR-07",
+      "title": "Sessão de treino — registro de execução",
+      "description": "Por exercício e por série: carga (kg), reps realizadas, RPE opcional (0-10), nota opcional. Suporta drop-set e falha. Histórico das últimas N execuções visível durante o treino.",
+      "priority": "MUST"
+    },
+    {
+      "id": "FR-08",
+      "title": "Cronômetro de descanso",
+      "description": "Auto-start ao confirmar série. Ring countdown grande, +15s/-15s, pause/resume, skip. Alerta sonoro + vibração ao zerar (tocar 3s antes também). Permite override do tempo padrão por série.",
+      "priority": "MUST",
+      "acceptance": [
+        "Cronômetro inicia automaticamente ao salvar série",
+        "Toca som ao zerar + flash visual ember→moss (web; sem vibração no iOS Safari)",
+        "Tela permanece acesa durante a sessão (Wake Lock API)",
+        "Mantém precisão usando Date.now (drift <1s/min) mesmo se aba perder foco",
+        "Botões: -15s, +15s, pause/resume, skip, custom time"
+      ]
+    },
+    {
+      "id": "FR-09",
+      "title": "Progressão de carga",
+      "description": "Sugere próxima carga baseada na última execução (heurística simples: se atingiu top range em todas séries → +2.5kg ou +1 rep). Mostra PR badge quando bate recorde.",
+      "priority": "SHOULD"
+    },
+    {
+      "id": "FR-10",
+      "title": "Histórico e progresso",
+      "description": "Volume semanal por grupo muscular, evolução de carga por exercício, aderência ao plano alimentar, evolução de peso corporal.",
+      "priority": "SHOULD"
+    },
+    {
+      "id": "FR-11",
+      "title": "Convite de coach",
+      "description": "Atleta gera código/link de convite. Coach se cadastra e ganha acesso de edição ao plano do atleta.",
+      "priority": "MUST"
+    },
+    {
+      "id": "FR-12",
+      "title": "Edição do plano pelo coach",
+      "description": "Coach edita refeições, exercícios, séries, reps, cargas-alvo, descansos. Mudanças aparecem ao atleta com badge 'atualizado pelo coach'.",
+      "priority": "MUST"
+    },
+    {
+      "id": "FR-13",
+      "title": "Seed inicial do PDF",
+      "description": "No primeiro login, popular DB com perfil + plano alimentar + 5 dias de treino do protocoloGustavo_modo_caverna.pdf.",
+      "priority": "MUST"
+    },
+    {
+      "id": "FR-14",
+      "title": "Fotos de progresso",
+      "description": "Atleta sobe fotos (frente/costas/lateral) com data e peso atual. Galeria com comparativo lado-a-lado entre 2 datas. Storage privado (somente atleta + coach acessam).",
+      "priority": "MUST",
+      "acceptance": [
+        "Upload via câmera ou galeria",
+        "Compressão local antes do upload (max 1080p, JPEG quality 80)",
+        "Comparativo before/after entre 2 datas selecionadas",
+        "Storage com RLS: atleta e coach vinculado leem; demais bloqueados"
+      ]
+    },
+    {
+      "id": "FR-15",
+      "title": "Resumo para coach",
+      "description": "Coach acessa dashboard com resumo diário e semanal: aderência alimentar (%), treinos completados, volume por grupo muscular, evolução de peso, últimas fotos. Sem realtime — atualiza ao abrir.",
+      "priority": "MUST"
+    }
+  ],
+  "nonFunctionalRequirements": [
+    { "id": "NFR-01", "category": "platform", "description": "Web app responsivo (Next.js 15 App Router) com PWA manifest para 'Add to Home' no iOS/Android. Sem versão nativa no MVP. Pivotado de Expo em 2026-04-26: distribuição mais simples (link), sem App Store, sem custos de Apple Developer." },
+    { "id": "NFR-02", "category": "performance", "description": "Tela de execução de treino renderiza em <500ms. Cronômetro com drift <1s/min." },
+    { "id": "NFR-03", "category": "ux", "description": "Dark mode por padrão (única tema no MVP). Paleta 'Modo Caverna' (obsidian + ember orange). Aesthetic instagrammável." },
+    { "id": "NFR-04", "category": "offline", "description": "Registro de séries funciona offline; sincroniza ao reconectar (TanStack Query + persistência local)." },
+    { "id": "NFR-05", "category": "auth", "description": "Auth via Supabase (email+password mínimo; magic link preferido). Single-tenant: 1 atleta + 1 coach por workspace." },
+    { "id": "NFR-06", "category": "data", "description": "Postgres no Supabase com RLS. Atleta só lê/escreve seus dados; coach lê/escreve do atleta vinculado." },
+    { "id": "NFR-07", "category": "notifications", "description": "Alerta sonoro + flash visual ao fim do descanso (web não tem haptics no iOS Safari). Web Push API quando disponível (iOS 16.4+ após Add to Home)." },
+    { "id": "NFR-08", "category": "accessibility", "description": "Touch targets >=44pt. Contraste AA mínimo. Suporte a Dynamic Type." }
+  ],
+  "constraints": [
+    { "id": "CON-01", "description": "Stack fixa: Next.js 15 App Router + TypeScript strict + Supabase + Tailwind + shadcn/ui + Zustand + TanStack Query. Deploy Vercel. PWA manifest para Add-to-Home." },
+    { "id": "CON-02", "description": "MVP single-user (Gustavo + 1 coach). Multi-tenant não está em escopo." },
+    { "id": "CON-03", "description": "Sem integrações externas (Apple Health, Strava, etc.) no MVP." },
+    { "id": "CON-04", "description": "Dark mode only no MVP — light mode é tech debt aceito." },
+    { "id": "CON-05", "description": "Seed do PDF é canônico; valores não podem divergir do protocolo original na primeira carga." },
+    { "id": "CON-06", "description": "Apenas 1 plano alimentar e 1 plano de treino ATIVO por atleta no MVP. Trocar de fase (cutting/bulking) substitui o plano ativo." },
+    { "id": "CON-07", "description": "Coach vê resumo (não realtime). Sincronização do dashboard ao abrir/refresh manual." },
+    { "id": "CON-08", "description": "Tema visual fixo: paleta 'Modo Caverna' (obsidian #0A0A0B + ember #FF6B1A). Fontes Inter (UI) + Bebas Neue/Space Grotesk (números)." }
+  ],
+  "outOfScope": [
+    "Marketplace de coaches",
+    "Pagamentos/assinatura",
+    "Integração com smartwatch/wearables",
+    "Análise de fotos por IA (form check)",
+    "Geração de plano por IA",
+    "Comunicação chat coach<>atleta (usar WhatsApp por enquanto)",
+    "Versão web/desktop",
+    "Múltiplos planos ativos simultâneos",
+    "Realtime do coach durante o treino do atleta",
+    "Light mode"
+  ],
+  "openQuestions": [],
+  "resolvedDecisions": [
+    { "question": "Coach realtime ou resumo?", "decision": "Resumo (sync ao abrir)", "fr": "FR-15" },
+    { "question": "Múltiplos protocolos por atleta?", "decision": "Apenas 1 ativo no MVP", "constraint": "CON-06" },
+    { "question": "Foto de progresso no MVP?", "decision": "SIM, com Supabase Storage", "fr": "FR-14" },
+    { "question": "Paleta visual?", "decision": "Modo Caverna (obsidian + ember)", "constraint": "CON-08" }
+  ],
+  "successMetrics": [
+    "Atleta registra 100% das séries de um treino sem sair da tela de execução",
+    "Cronômetro nunca falha em 30 dias de uso",
+    "Coach consegue trocar 1 exercício e atleta vê na próxima abertura do app",
+    "Tempo médio para registrar 1 série: <8s"
+  ]
+}
