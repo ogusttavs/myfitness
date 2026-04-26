@@ -82,38 +82,25 @@ export function useRedeemInvite() {
     mutationFn: async (code: string) => {
       const supabase = getSupabaseBrowserClient();
       // 1) busca workspace pelo código
-      const { data, error: findError } = await supabase
-        .from('workspaces')
-        .select('id, invite_expires_at')
-        .eq('invite_code', code.toUpperCase())
-        .maybeSingle();
-      if (findError) throw findError;
-      const ws = data as { id: string; invite_expires_at: string | null } | null;
-      if (!ws) throw new Error('Código inválido');
-      if (ws.invite_expires_at && new Date(ws.invite_expires_at) < new Date()) {
-        throw new Error('Código expirado — peça um novo');
+      // RPC atômica — tudo numa transação no banco
+      const { data, error } = await supabase.rpc('redeem_invite_code', { code } as never);
+      if (error) throw error;
+      const result = data as unknown as string;
+      if (result !== 'ok') {
+        const REDEEM_ERRORS: Record<string, string> = {
+          unauthenticated: 'Sessão expirada. Faça login novamente.',
+          invalid_code: 'Código inválido.',
+          expired: 'Código expirado — peça um novo ao atleta.',
+          cannot_invite_self: 'Você não pode se vincular ao seu próprio workspace.',
+        };
+        throw new Error(REDEEM_ERRORS[result] ?? 'Erro: ' + result);
       }
-      // 2) cria vínculo coach
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Não autenticado');
-      const { error: linkError } = await supabase
-        .from('coach_workspaces')
-        .insert({ workspace_id: ws.id, coach_user_id: user.id } as never);
-      if (linkError) throw linkError;
-      // 3) limpa código (só pode ser usado uma vez)
-      await supabase
-        .from('workspaces')
-        .update({ invite_code: null, invite_expires_at: null } as never)
-        .eq('id', ws.id);
-      // 4) garante que profile do coach existe e tem role coach
-      await supabase
-        .from('profiles')
-        .upsert({ id: user.id, full_name: user.email?.split('@')[0] ?? 'Coach', role: 'coach' } as never);
-      return ws.id;
+      return result;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['coach:atletas'] });
       qc.invalidateQueries({ queryKey: ['workspace:active'] });
+      qc.invalidateQueries({ queryKey: ['athlete:profile'] });
     },
   });
 }

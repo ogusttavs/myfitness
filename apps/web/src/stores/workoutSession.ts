@@ -11,6 +11,8 @@ export interface SetLog {
   weightKg: number;
   reps: number;
   loggedAt: number; // epoch ms
+  /** UUID gerado no cliente — idempotência para sync com Supabase. */
+  clientId?: string;
 }
 
 export interface WorkoutSession {
@@ -19,6 +21,8 @@ export interface WorkoutSession {
   startedAt: number;
   finishedAt: number | null;
   setLogs: SetLog[];
+  /** ID da sessão correspondente no Supabase, quando sincronizada. */
+  remoteSessionId?: string | null;
 }
 
 interface WorkoutSessionState {
@@ -26,9 +30,10 @@ interface WorkoutSessionState {
   history: WorkoutSession[];
 
   startSession: (dayCode: string) => void;
+  setRemoteId: (remoteId: string) => void;
   finishSession: () => WorkoutSession | null;
   cancelSession: () => void;
-  logSet: (entry: Omit<SetLog, 'loggedAt'>) => void;
+  logSet: (entry: Omit<SetLog, 'loggedAt'>) => SetLog;
   /** Remove a última série logada de um exercício específico (em caso de desfazer). */
   removeLastSet: (exerciseKey: string) => void;
 }
@@ -65,15 +70,27 @@ export const useWorkoutSession = create<WorkoutSessionState>()(
 
       cancelSession: () => set({ active: null }),
 
-      logSet: (entry) => {
+      setRemoteId: (remoteId) => {
         const active = get().active;
         if (!active) return;
+        set({ active: { ...active, remoteSessionId: remoteId } });
+      },
+
+      logSet: (entry) => {
+        const active = get().active;
+        if (!active) {
+          // tipo precisa retornar SetLog — fallback dummy se não tiver sessão (não acontece)
+          return { ...entry, loggedAt: Date.now() };
+        }
+        const clientId =
+          typeof crypto !== 'undefined' && 'randomUUID' in crypto
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        const log: SetLog = { ...entry, loggedAt: Date.now(), clientId };
         set({
-          active: {
-            ...active,
-            setLogs: [...active.setLogs, { ...entry, loggedAt: Date.now() }],
-          },
+          active: { ...active, setLogs: [...active.setLogs, log] },
         });
+        return log;
       },
 
       removeLastSet: (exerciseKey) => {

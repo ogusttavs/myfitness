@@ -23,7 +23,12 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  try {
+    await supabase.auth.getUser();
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('[middleware] auth.getUser failed:', e);
+  }
 
   return response;
 }

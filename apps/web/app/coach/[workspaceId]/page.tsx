@@ -61,7 +61,8 @@ function Content({ workspaceId }: { workspaceId: string }) {
       type Session = { id: string; started_at: string; finished_at: string | null; plan_day_id: string | null };
       type MealEntry = { id: string; date: string };
 
-      const [profileWSRes, athleteDataRes, lastWeightRes, sessionsRes, mealsRes, photosRes] = await Promise.all([
+      // Promise.allSettled — se uma query falha, as outras ainda voltam
+      const results = await Promise.allSettled([
         supabase.from('workspaces').select('athlete_user_id, profiles!workspaces_athlete_user_id_fkey(full_name)').eq('id', workspaceId).maybeSingle(),
         supabase.from('athlete_data').select('age, height_cm, weight_kg, level, goal, weekly_frequency').eq('workspace_id', workspaceId).maybeSingle(),
         supabase.from('weight_logs').select('weight_kg, logged_at').eq('workspace_id', workspaceId).order('logged_at', { ascending: false }).limit(1).maybeSingle(),
@@ -70,12 +71,28 @@ function Content({ workspaceId }: { workspaceId: string }) {
         supabase.from('progress_photos').select('id, angle, storage_path, taken_on, weight_kg').eq('workspace_id', workspaceId).order('taken_on', { ascending: false }).limit(6),
       ]);
 
-      const profileWS = profileWSRes.data as unknown as { athlete_user_id: string; profiles: { full_name: string } | null } | null;
-      const athleteData = athleteDataRes.data as AthleteData | null;
-      const lastWeight = lastWeightRes.data as WeightLog | null;
-      const sessions = (sessionsRes.data ?? []) as Session[];
-      const meals = (mealsRes.data ?? []) as MealEntry[];
-      const photos = photosRes.data;
+      function ok<T>(r: typeof results[number], label: string): T | null {
+        if (r.status !== 'fulfilled') {
+          // eslint-disable-next-line no-console
+          console.warn('[coach:summary] ' + label + ' rejected:', r.reason);
+          return null;
+        }
+        // result of supabase queries: { data, error }
+        const v = r.value as unknown as { data: T | null; error: unknown };
+        if (v.error) {
+          // eslint-disable-next-line no-console
+          console.warn('[coach:summary] ' + label + ' error:', v.error);
+          return null;
+        }
+        return v.data;
+      }
+
+      const profileWS = ok<{ athlete_user_id: string; profiles: { full_name: string } | null }>(results[0]!, 'profileWS');
+      const athleteData = ok<AthleteData>(results[1]!, 'athleteData');
+      const lastWeight = ok<WeightLog>(results[2]!, 'lastWeight');
+      const sessions = ok<Session[]>(results[3]!, 'sessions') ?? [];
+      const meals = ok<MealEntry[]>(results[4]!, 'meals') ?? [];
+      const photos = ok<unknown[]>(results[5]!, 'photos');
 
       // signed urls para fotos
       type PhotoRow = { id: string; angle: 'front' | 'side' | 'back'; storage_path: string; taken_on: string; weight_kg: number | null };

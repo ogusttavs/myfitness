@@ -79,10 +79,14 @@ export function OnboardingForm() {
         } as never);
       if (dataError) throw dataError;
 
-      // 3) opcional: registra primeira pesagem
-      await supabase
+      // 3) opcional: registra primeira pesagem (não bloqueia onboarding se falhar)
+      const { error: weightError } = await supabase
         .from('weight_logs')
         .insert({ workspace_id: workspace.id, weight_kg: weightNum } as never);
+      if (weightError) {
+        // eslint-disable-next-line no-console
+        console.warn('[onboarding] weight insert error:', weightError);
+      }
 
       // Atualiza cache otimisticamente — evita race condition do guard
       qc.setQueryData(['athlete:profile', user.id, workspace.id], {

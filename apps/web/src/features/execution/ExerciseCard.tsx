@@ -5,8 +5,10 @@ import { Check, Plus, Minus, Pause, Play, SkipForward, Timer, Undo2 } from 'luci
 import { cn } from '@/lib/cn';
 import type { Exercise } from '@/data/protocol';
 import { useTimer } from '@/lib/timer/useTimer';
+import { celebrateSet } from '@/lib/celebrate';
 import { Button } from '@ui/button';
 import { useWorkoutSession, setsForExercise } from '@/stores/workoutSession';
+import { syncLogSet } from './syncSession';
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -39,16 +41,26 @@ export function ExerciseCard({ exercise, dayCode }: ExerciseCardProps) {
 
   const allDone = completedCount >= exercise.sets;
 
-  const confirmSet = () => {
+  const confirmSet = (clickEvent?: React.MouseEvent) => {
     if (!sessionActive) return;
     const setNumber = completedCount + 1;
-    logSet({
+    const log = logSet({
       exerciseKey,
       exerciseName: exercise.name,
       setNumber,
       weightKg: pendingWeight,
       reps: pendingReps,
     });
+
+    // Sync ao Supabase em background (idempotente via clientId)
+    if (active?.remoteSessionId && log.clientId) {
+      void syncLogSet(active.remoteSessionId, log, log.clientId);
+    }
+
+    // Celebração visual + haptic + som
+    if (clickEvent) {
+      celebrateSet(clickEvent.clientX, clickEvent.clientY);
+    }
     setActiveSetNumber(setNumber);
     setShowTimer(true);
     reset();
@@ -107,18 +119,20 @@ export function ExerciseCard({ exercise, dayCode }: ExerciseCardProps) {
         </div>
       ) : null}
 
-      {/* Pending set input */}
+      {/* Pending set input — borda ember + glow no card pra indicar série ativa */}
       {sessionActive && !allDone ? (
-        <div className="p-3 flex items-center gap-2 border-t border-smoke">
-          <span className="font-display tracking-widest text-sm text-ember w-6">{completedCount + 1}</span>
+        <div className="p-3 flex items-center gap-2 border-t border-smoke border-l-4 border-l-ember bg-ember/5">
+          <span className="font-display tracking-widest text-sm text-ember w-6 animate-pulse">
+            {completedCount + 1}
+          </span>
 
           <Stepper value={pendingWeight} step={2.5} unit="kg" onChange={setPendingWeight} />
           <Stepper value={pendingReps} step={1} unit={`/${exercise.reps}`} onChange={setPendingReps} />
 
           <button
             type="button"
-            onClick={confirmSet}
-            className="size-10 shrink-0 rounded-full flex items-center justify-center bg-ember text-obsidian active:opacity-80"
+            onClick={(e) => confirmSet(e)}
+            className="size-11 shrink-0 rounded-full flex items-center justify-center bg-ember text-obsidian shadow-[0_0_24px_rgba(255,107,26,0.5)] active:scale-90 active:opacity-90 transition-transform"
             aria-label="confirmar série"
           >
             <Check className="size-5" strokeWidth={3} />

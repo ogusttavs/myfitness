@@ -49,7 +49,11 @@ export function SessionBar({ dayCode, onFinish }: SessionBarProps) {
           </div>
           <div className="text-right shrink-0">
             <p className="text-mute text-[10px] uppercase tracking-widest">volume</p>
-            <p className="text-ember font-display text-2xl tracking-wider leading-none mt-0.5">
+            <p
+              key={kg}
+              className="text-ember font-display text-2xl tracking-wider leading-none mt-0.5 animate-[pop_300ms_ease-out]"
+              style={{ textShadow: kg > 0 ? '0 0 12px rgba(255,107,26,0.5)' : undefined }}
+            >
               {kg.toLocaleString('pt-BR')} kg
             </p>
           </div>

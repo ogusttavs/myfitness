@@ -169,8 +169,12 @@ function WeightSection({ workspaceId }: { workspaceId: string }) {
             histórico ({logs.length})
           </summary>
           <ul className="mt-3 space-y-1.5">
-            {logs.slice(0, 30).map((l) => (
-              <li key={l.id} className="flex items-baseline justify-between text-xs">
+            {logs.slice(0, 30).map((l, i) => (
+              <li
+                key={l.id}
+                className="flex items-baseline justify-between text-xs animate-slideUp"
+                style={{ animationDelay: i * 30 + 'ms', animationFillMode: 'backwards' }}
+              >
                 <span className="text-mute">{dayMonth.format(new Date(l.logged_at))}</span>
                 <span className="text-bone font-medium">{l.weight_kg.toFixed(1)}kg</span>
               </li>
@@ -246,8 +250,14 @@ function PhotosSection({ workspaceId }: { workspaceId: string }) {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2">
-          {filtered.map((p) => (
-            <PhotoCard key={p.id} photo={p} workspaceId={workspaceId} />
+          {filtered.map((p, i) => (
+            <div
+              key={p.id}
+              className="animate-slideUp"
+              style={{ animationDelay: i * 50 + 'ms', animationFillMode: 'backwards' }}
+            >
+              <PhotoCard photo={p} workspaceId={workspaceId} />
+            </div>
           ))}
         </div>
       )}

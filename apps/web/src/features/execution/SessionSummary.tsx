@@ -1,8 +1,10 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Trophy, Timer, Dumbbell, X } from 'lucide-react';
 import { Button } from '@ui/button';
 import { formatDuration } from '@/stores/workoutSession';
+import { celebrateSet } from '@/lib/celebrate';
 
 interface SessionSummaryProps {
   open: boolean;
@@ -14,6 +16,17 @@ interface SessionSummaryProps {
 }
 
 export function SessionSummary({ open, totalKg, durationMs, setsCount, dayCode, onClose }: SessionSummaryProps) {
+  // Celebração ao abrir
+  useEffect(() => {
+    if (!open) return;
+    if (typeof window === 'undefined') return;
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 3;
+    celebrateSet(cx, cy, 18);
+    // mais haptic forte
+    navigator.vibrate?.([100, 60, 100, 60, 200]);
+  }, [open]);
+
   if (!open) return null;
   return (
     <div

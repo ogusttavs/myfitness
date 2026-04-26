@@ -61,9 +61,20 @@ const config: Config = {
           '0%, 100%': { transform: 'scale(1)' },
           '50%': { transform: 'scale(1.06)' },
         },
+        pop: {
+          '0%': { transform: 'scale(1)' },
+          '40%': { transform: 'scale(1.18)' },
+          '100%': { transform: 'scale(1)' },
+        },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         pulseTimer: 'pulseTimer 1s ease-in-out infinite',
+        pop: 'pop 300ms ease-out',
+        slideUp: 'slideUp 250ms ease-out',
       },
     },
   },
