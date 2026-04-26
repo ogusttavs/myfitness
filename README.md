@@ -1,63 +1,67 @@
-# Modo Caverna — Monorepo
+# Modo Caverna
 
-App **web** (Next.js + Vercel) para gestão de treino e dieta segundo o protocolo "Modo Caverna" (hipertrofia + recomposição corporal). Atleta executa, coach edita o plano e cadastra variações.
+App **web mobile-first** para gestão de treino e dieta segundo o protocolo "Modo Caverna" (hipertrofia + recomposição corporal). Atleta executa, coach edita o plano (futuro).
 
-## Estrutura
+> **🌐 Produção:** https://web-xi-neon-37.vercel.app
+> **📚 Para agentes / contribuidores:** leia [`docs/ONBOARDING.md`](docs/ONBOARDING.md) **antes de qualquer mudança**.
 
-```
-apps/
-  web/              # Next.js 15 + TypeScript + Tailwind + shadcn (ATIVO)
-  mobile/           # Expo (legacy — mantido como referência, não usar)
-supabase/           # migrations + seeds + RLS tests (a criar)
-docs/
-  spec/             # AIOX Spec Pipeline
-  ux/               # front-end-spec.md
-  db/               # SCHEMA.md
-  stories/          # stories de desenvolvimento
-.aiox-core/         # framework AIOX (não modificar)
-.claude/            # configuração Claude Code
-protocoloGustavo_modo_caverna.pdf  # documento-fonte (seed canônico)
-```
+---
 
 ## Quick start
 
 ```bash
-cd apps/web
+git clone https://github.com/ogusttavs/myfitness
+cd myfitness/apps/web
 npm install
-cp .env.example .env.local   # preencher Supabase
-npm run dev                  # http://localhost:3000
+npm run dev               # http://localhost:3000
 ```
 
-Para "instalar" no iPhone (depois do deploy):
-1. Abre a URL no Safari
-2. Compartilhar → Adicionar à Tela de Início
-3. Vira ícone "Caverna" como app normal
+## Instalar no iPhone como app
 
-## Deploy (Vercel)
-
-```bash
-# uma vez:
-npx vercel link
-
-# a cada push:
-git push    # Vercel deploya automaticamente
-
-# manual:
-npx vercel --prod
-```
-
-Configurar `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` no dashboard da Vercel (Settings → Environment Variables).
+1. Abrir https://web-xi-neon-37.vercel.app no Safari
+2. Compartilhar → "Adicionar à Tela de Início"
+3. Vira ícone "Caverna" — abre fullscreen como app
 
 ## Stack
 
 | Camada | Tecnologia |
 |---|---|
-| App | **Next.js 15 App Router** + TypeScript strict |
-| Styling | Tailwind + shadcn/ui + tokens "Modo Caverna" (dark) |
-| State | Zustand + TanStack Query v5 (offline persister via localStorage) |
-| Backend | Supabase (Postgres + Auth + Storage + RLS) |
-| Hosting | **Vercel** (CI/CD automático no push) |
-| PWA | manifest + apple-web-app meta para Add-to-Home |
+| App | Next.js 15 App Router + TypeScript strict |
+| Styling | Tailwind 3 + shadcn/ui + tema "Modo Caverna" (dark fixo) |
+| State | Zustand 5 + persist localStorage |
+| Hosting | Vercel |
+| Repo | https://github.com/ogusttavs/myfitness |
+
+> **Banco:** ainda não. Tudo em localStorage por dispositivo. Próximo passo: Supabase.
+
+## Estrutura
+
+```
+apps/web/         ← APP ATIVO (Next.js)
+apps/mobile/      ← legacy Expo (não usar)
+docs/
+  ONBOARDING.md   ← guia para agentes/devs
+  spec/           ← Spec Pipeline AIOX
+  ux/             ← wireframes + design tokens
+  db/SCHEMA.md    ← schema Supabase planejado
+  stories/        ← stories de desenvolvimento
+.aiox-core/       ← framework AIOX
+.claude/          ← config Claude Code
+protocoloGustavo_modo_caverna.pdf   ← fonte canônica
+```
+
+## Comandos
+
+```bash
+cd apps/web
+npm run dev          # dev local
+npm run build        # validar build prod
+npm run typecheck
+npm run lint
+npm test             # vitest
+
+vercel --prod --yes  # deploy produção
+```
 
 ## Paleta Modo Caverna
 
@@ -65,23 +69,16 @@ Configurar `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` no dashb
 |---|---|---|
 | `obsidian` | `#0A0A0B` | bg base |
 | `cave` | `#141416` | cards |
-| `ember` | `#FF6B1A` | CTA / PR / timer ativo |
+| `ember` | `#FF6B1A` | accent (CTA, PR, timer ativo) |
 | `bone` | `#F5F5F4` | texto primário |
-| `moss` | `#4ADE80` | série completada |
+| `moss` | `#4ADE80` | sucesso, série feita |
 
 ## Documentação principal
 
+- **Briefing rápido (Claude):** [CLAUDE.md](CLAUDE.md)
+- **Onboarding completo:** [docs/ONBOARDING.md](docs/ONBOARDING.md)
 - **Visão e escopo:** [docs/spec/spec.md](docs/spec/spec.md)
 - **Decisões técnicas:** [docs/spec/complexity.json](docs/spec/complexity.json)
 - **Wireframes:** [docs/ux/front-end-spec.md](docs/ux/front-end-spec.md)
 - **Schema do DB:** [docs/db/SCHEMA.md](docs/db/SCHEMA.md)
 - **Backlog:** [docs/stories/INDEX.md](docs/stories/INDEX.md)
-
-## Notas de pivot (2026-04-26)
-
-Pivotamos de Expo (mobile nativo) para Next.js (web + PWA) por simplicidade de distribuição:
-- Sem App Store / sem $99 Apple Developer
-- Coach instala via URL (Add to Home Screen no iPhone)
-- Deploy Vercel = `git push`
-- Timer engine portada sem alterações (TS puro)
-- Trade-off aceito: sem vibração no iOS Safari (substituída por som + flash visual)
