@@ -1,5 +1,7 @@
 import { AppShell } from '@/components/AppShell';
 import { profile, observations } from '@/data/protocol';
+import { LogoutButton } from '@/features/auth/LogoutButton';
+import { SessionEmail } from '@/features/auth/SessionEmail';
 
 export default function PerfilPage() {
   return (
@@ -7,6 +9,7 @@ export default function PerfilPage() {
       <header className="mb-6">
         <p className="text-mute text-xs uppercase tracking-widest">você</p>
         <h1 className="text-bone text-4xl font-display tracking-wider mt-1">{profile.name.toUpperCase()}</h1>
+        <SessionEmail />
       </header>
 
       <section className="rounded-lg bg-cave border border-smoke p-5 mb-6">
@@ -25,7 +28,7 @@ export default function PerfilPage() {
       </section>
 
       <h2 className="text-mute text-xs uppercase tracking-widest mb-3">recomendações</h2>
-      <ul className="space-y-3">
+      <ul className="space-y-3 mb-6">
         {observations.map((obs, idx) => (
           <li key={idx} className="rounded-lg bg-cave border border-smoke p-4">
             <p className="text-ember text-xs uppercase tracking-widest font-medium">{obs.topic}</p>
@@ -33,6 +36,8 @@ export default function PerfilPage() {
           </li>
         ))}
       </ul>
+
+      <LogoutButton />
 
       <p className="text-mute text-[10px] text-center mt-8 uppercase tracking-widest">
         Modo Caverna · v0.1

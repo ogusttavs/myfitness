@@ -1,0 +1,29 @@
+project_id = "modo-caverna"
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://modo-caverna.vercel.app", "https://web-xi-neon-37.vercel.app"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false  # MVP: dispensar confirmação por email
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
