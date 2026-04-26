@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Bebas_Neue, Space_Grotesk } from 'next/font/google';
+import { QueryProvider } from '@/lib/QueryProvider';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
@@ -33,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR" className={`${inter.variable} ${bebas.variable} ${grotesk.variable} dark`}>
       <body className="bg-obsidian text-bone antialiased min-h-dvh">
-        {children}
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );
