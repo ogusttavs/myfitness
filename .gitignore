@@ -17,3 +17,8 @@ next-env.d.ts
 
 # AIOX runtime
 .aiox/
+
+# Screenshots / capturas (não vão pro repo)
+Captura de Tela*.png
+Screenshot*.png
+*.screenshot.png
