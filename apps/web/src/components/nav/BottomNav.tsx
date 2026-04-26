@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Calendar, Dumbbell, UtensilsCrossed, BarChart3, User } from 'lucide-react';
+import { Calendar, Dumbbell, UtensilsCrossed, TrendingUp, User } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 const items = [
   { href: '/', label: 'Hoje', icon: Calendar },
   { href: '/treino', label: 'Treino', icon: Dumbbell },
   { href: '/dieta', label: 'Dieta', icon: UtensilsCrossed },
-  { href: '/relatorios', label: 'Relatórios', icon: BarChart3 },
+  { href: '/progresso', label: 'Progresso', icon: TrendingUp },
   { href: '/perfil', label: 'Perfil', icon: User },
 ] as const;
 

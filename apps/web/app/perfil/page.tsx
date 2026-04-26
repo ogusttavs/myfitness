@@ -1,7 +1,10 @@
+import Link from 'next/link';
+import { BarChart3, ChevronRight } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { profile, observations } from '@/data/protocol';
 import { LogoutButton } from '@/features/auth/LogoutButton';
 import { SessionEmail } from '@/features/auth/SessionEmail';
+import { InviteCoachCard } from '@/features/coach/InviteCoachCard';
 
 export default function PerfilPage() {
   return (
@@ -26,6 +29,22 @@ export default function PerfilPage() {
           </div>
         </div>
       </section>
+
+      <InviteCoachCard />
+
+      <Link
+        href="/relatorios"
+        className="flex items-center gap-3 rounded-lg bg-cave border border-smoke p-4 mb-6 active:opacity-80"
+      >
+        <div className="size-10 rounded-full bg-elevated border border-smoke flex items-center justify-center">
+          <BarChart3 className="size-4 text-ember" />
+        </div>
+        <div className="flex-1">
+          <p className="text-bone font-medium text-sm">Relatórios</p>
+          <p className="text-mute text-xs mt-0.5">volume semanal, aderência, histórico</p>
+        </div>
+        <ChevronRight className="size-4 text-mute" />
+      </Link>
 
       <h2 className="text-mute text-xs uppercase tracking-widest mb-3">recomendações</h2>
       <ul className="space-y-3 mb-6">

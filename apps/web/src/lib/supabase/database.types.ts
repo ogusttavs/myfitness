@@ -129,6 +129,31 @@ export interface Database {
         };
         Update: Partial<Database['public']['Tables']['set_logs']['Row']>;
       };
+      coach_workspaces: {
+        Row: { workspace_id: string; coach_user_id: string; invited_at: string };
+        Insert: { workspace_id: string; coach_user_id: string };
+        Update: never;
+      };
+      supplements_catalog: {
+        Row: {
+          id: string; name: string; dose: string; notes: string | null;
+          schedule_kind: 'daily' | 'weekly';
+          schedule_period: 'morning' | 'afternoon' | 'evening' | 'night' | 'any' | null;
+          schedule_weekday: number | null;
+        };
+        Insert: { id: string; name: string; dose: string; schedule_kind: 'daily' | 'weekly' };
+        Update: Partial<Database['public']['Tables']['supplements_catalog']['Row']>;
+      };
+      water_logs: {
+        Row: { id: string; workspace_id: string; date: string; ml: number; updated_at: string };
+        Insert: { workspace_id: string; date: string; ml: number };
+        Update: Partial<{ ml: number }>;
+      };
+      supplement_logs: {
+        Row: { id: string; workspace_id: string; supplement_id: string; date: string; taken_at: string };
+        Insert: { workspace_id: string; supplement_id: string; date: string };
+        Update: never;
+      };
       meal_logs: {
         Row: {
           id: string; client_id: string; workspace_id: string;
@@ -140,16 +165,18 @@ export interface Database {
       };
       progress_photos: {
         Row: {
-          id: string; workspace_id: string; angle: 'front' | 'back' | 'side';
+          id: string; workspace_id: string; angle: 'front' | 'side' | 'back';
           storage_path: string; taken_on: string; weight_kg: number | null;
+          note: string | null; created_at: string;
         };
-        Insert: { workspace_id: string; angle: 'front' | 'back' | 'side'; storage_path: string; taken_on: string; weight_kg?: number | null };
-        Update: Partial<{ weight_kg: number | null }>;
+        Insert: { workspace_id: string; angle: 'front' | 'side' | 'back'; storage_path: string; taken_on: string; weight_kg?: number | null; note?: string | null };
+        Update: Partial<{ weight_kg: number | null; note: string | null; taken_on: string }>;
       };
     };
     Views: Record<string, never>;
     Functions: {
       is_workspace_member: { Args: { ws: string }; Returns: boolean };
+      seed_modo_caverna_protocol: { Args: { ws: string }; Returns: void };
     };
     Enums: Record<string, never>;
   };
