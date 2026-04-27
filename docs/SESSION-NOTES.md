@@ -16,9 +16,14 @@
 2. **Aplicar último SQL pendente:** `supabase/setup-incremental-10.sql` (cria função `redeem_invite_code`)
    - Verificação rápida via curl: `curl -s -X POST "https://eunhwmaeatzswebkuyzn.supabase.co/rest/v1/rpc/redeem_invite_code" -H "apikey: sb_publishable_3ij28_W-UaUYL0diCY0HwA_qBo8tHe3" -H "Content-Type: application/json" -d '{"code":"X"}'` — se retorna `"unauthenticated"`, função existe ✓ (já está aplicado conforme última verificação)
 
-3. **Destravar login do coach** — opções:
-   - Esperar rate limit Supabase resetar (1h)
-   - **Configurar Resend SMTP** (caminho recomendado): https://resend.com → API key → Supabase Auth → SMTP Settings (host smtp.resend.com, port 465, user `resend`, sender `onboarding@resend.dev`)
+3. ~~**Destravar login do coach**~~ ✅ **RESOLVIDO** (sessão 2026-04-27): Resend SMTP configurado no Supabase
+   - API key `modo-caverna-supabase` (Sending access) — guardada só no Supabase Auth → SMTP (encrypted)
+   - **Domínio próprio** `mail.getorbita.com.br` verificado no Resend (DKIM + SPF MX + SPF TXT). DNS na Hostinger.
+   - Sender: `noreply@mail.getorbita.com.br` / "Modo Caverna"
+   - Host `smtp.resend.com:465`, user `resend`
+   - Testes: magic link → `gustavosilva585@gmail.com` (Clicked), `victorflavio.2312@gmail.com` (Delivered)
+   - Limite agora: 30 emails/seg (Supabase) + 3.000/mês (Resend free)
+   - Pode mandar pra **qualquer destinatário** (não mais restrição de teste)
 
 4. **Login do coach pra testar:** email `ogusttavs@gmail.com` (pre-vinculado como coach do Gustavo via `pending_coach_links`)
 
@@ -166,7 +171,7 @@
 | 0 testes além de `RestTimer.test.ts` | — | Média (recomendar onboarding/coach redeem/logSet) |
 | Coach edita exercícios/séries/refeições/variações | UI não existe | Média (botão "aplicar Modo Caverna" funciona, falta CRUD manual) |
 | Pgtap RLS tests no CI | Precisa GitHub Actions setup | Alta (mitiga RISK-02) |
-| Email rate limit Supabase free tier | Configurar Resend SMTP (5min) | Alta — bloqueia testes |
+| ~~Email rate limit Supabase free tier~~ | ✅ Resend SMTP configurado (2026-04-27) | — |
 
 ---
 
@@ -177,7 +182,7 @@
 | Email atleta Gustavo | `gustavosilva585@gmail.com` (perfil completo, plano ativo) |
 | Email coach temp | `ogusttavs@gmail.com` (pre-vinculado em `pending_coach_links`, aguarda primeiro login) |
 | Email atleta de teste extra | `gustavs.silvs@gmail.com` (sem dados — pode ser usado de teste atleta novo) |
-| Email Vitor real | TBD — quando enviar, rodar `update pending_coach_links set coach_email='X' where coach_name like 'Vitor%'` |
+| Email Vitor real | `victorflavio.2312@gmail.com` (já é coach do Gustavo desde 2026-04-27) |
 | Supabase URL | `https://eunhwmaeatzswebkuyzn.supabase.co` |
 | Supabase publishable key | `sb_publishable_3ij28_W-UaUYL0diCY0HwA_qBo8tHe3` (em `.env.local` + Vercel envs) |
 | GitHub | https://github.com/ogusttavs/myfitness |
@@ -225,8 +230,8 @@
 
 ## ⚠️ Coisas a NÃO esquecer
 
-- Vitor real (email) — substituir `ogusttavs@gmail.com` no `pending_coach_links` quando ele mandar
-- Coach `ogusttavs@gmail.com` virou coach permanente pra teste; caso queira voltar pra atleta normal: `update profiles set role='athlete', full_name='' where id=(select id from auth.users where email='ogusttavs@gmail.com');`
+- Vitor real: `victorflavio.2312@gmail.com` — promovido a coach + vinculado ao workspace do Gustavo via `link_coach_by_emails` em 2026-04-27. `full_name` ainda é "victorflavio.2312" (auto-gerado), pode atualizar manualmente quando ele logar.
+- Coach `ogusttavs@gmail.com` nunca logou; pending_coach_link foi deletado em 2026-04-27 quando Vitor real foi vinculado.
 - Os 30 exercícios + 18 alimentos do catálogo são `to authenticated` — só usuários logados leem (anon não vê)
 - `.env.local` tem credenciais Supabase (não commitado, gitignored)
 - Pasta `apps/mobile/` é legacy do pivot Expo — não usar
