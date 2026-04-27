@@ -1,6 +1,6 @@
 # Status — Modo Caverna
 
-> Snapshot atualizado em **2026-04-26 (sessão 2)**. Atualize sempre que avançar/regredir.
+> Snapshot atualizado em **2026-04-27 (sessão 3 — Sprint 2 + SMTP)**. Atualize sempre que avançar/regredir.
 >
 > 📍 **Pickup point detalhado** da última sessão: [SESSION-NOTES.md](SESSION-NOTES.md)
 > 📊 **Review AIOX** (QA+Arch+UX) com ações priorizadas: [REVIEW.md](REVIEW.md)
@@ -25,8 +25,8 @@
 |---|---|---|
 | `gustavosilva585@gmail.com` | Atleta (Gustavo Silva, 22a, 80kg, 175cm, Avançado) | ✅ Completo, dados do PDF aplicados |
 | `gustavs.silvs@gmail.com` | Atleta de teste (sem dados) | ⚠️ Pode ser usado de teste |
-| `ogusttavs@gmail.com` | Coach temp (Vitor Flavio TESTE) | ⏳ Pre-vinculado, aguardando primeiro login (bloqueado por rate limit) |
-| TBD (Vitor real) | Coach do Gustavo | ⏳ Aguardando email real do Vitor |
+| `victorflavio.2312@gmail.com` | **Coach do Gustavo** (Vitor Flavio) | ✅ Vinculado ao workspace, magic link funcionando (full_name=`victorflavio.2312` cosmético) |
+| `ogusttavs@gmail.com` | ❌ Coach pre-link removido | Substituído pelo Vitor real em 2026-04-27 |
 
 ---
 
@@ -62,7 +62,10 @@
 - [x] **Tela Perfil** (`/perfil`): dados dinâmicos do banco, botão "editar" volta pra onboarding pré-preenchido, card de convite pro coach com geração de código 48h + share/copy, link pra relatórios, recomendações do PDF, logout
 - [x] **Tela Relatórios** (`/relatorios`): 4 KPIs da semana (volume kg, refeições, água, sequência), gráfico volume por dia, detalhe diário, treinos recentes, observações de refeições recentes
 - [x] **Painel Coach** (`/coach`): lista atletas vinculados com avatar inicial, redeem de invite code (6 chars)
-- [x] **Painel Coach Atleta** (`/coach/[workspaceId]`): KPIs do atleta, status do plano (ativo/sem) com botão "aplicar Modo Caverna", treinos recentes, fotos
+- [x] **Painel Coach Atleta** (`/coach/[workspaceId]`): KPIs do atleta, status do plano (ativo/sem) com botão "aplicar Modo Caverna", treinos recentes, fotos, **cards "plano de treino" + "plano de dieta"** linkando pros editores
+- [x] **Editor de Treino** (`/coach/[workspaceId]/treino/[dayCode]`) ✨ Sprint 2: edita inline séries/reps/descanso de cada exercício, troca exercício via Sheet com catálogo pesquisável (30 exercícios), adiciona/remove com hold-to-confirm, edita cardio_minutes do dia. Mutations invalidam TanStack Query → atleta vê em tempo real
+- [x] **Editor de Dieta** (`/coach/[workspaceId]/dieta`) ✨ Sprint 2: edita macros-alvo do plano (kcal/P/C/G), nome+horário das 6 refeições, descrição+macros estimadas dos itens, FoodPicker com catálogo (18 alimentos) + opção "item livre" (texto puro), hold-to-confirm pra remover
+- [x] **App lê plano de treino do banco** ✨ Sprint 2: TreinoClient + WorkoutDayLoader puxam de `workout_plans` ativo do workspace; fallback no seed `protocol.ts` enquanto carrega
 - [x] **Guia Coach** (`/guia-coach`): documento HTML printable em PDF com 8 seções (como entrar, painel, editar treino/dieta, boas práticas, segurança)
 
 ### Backend (Supabase)
@@ -93,30 +96,29 @@
 
 | Item | Bloqueio | Solução |
 |---|---|---|
-| **Login coach** | Rate limit Supabase free tier (~3-4 emails/h global) | Esperar 30-60min OU configurar Resend SMTP (5min, 3000/dia free) |
-| **Email real do Vitor Flavio** | Aguardando você passar | Quando chegar: SQL pra trocar `pending_coach_links.coach_email` |
-| **Aplicar setup-incremental-9.sql** | Bloqueado pelo rate limit (não bloqueia o SQL em si — pode rodar agora se quiser) | Roda quando quiser (já tá no `supabase/setup-incremental-9.sql`) |
+| ~~Login coach~~ | ✅ **Resolvido** (Resend SMTP + domínio próprio) | — |
+| ~~Email real Vitor~~ | ✅ **Resolvido** (`victorflavio.2312@gmail.com` vinculado em 2026-04-27) | — |
+| `database.types.ts` regen | Precisa `! npx supabase login` interativo | Próxima sessão |
+| **PR #2 (editor dieta)** | Aguardando merge | https://github.com/ogusttavs/myfitness/pull/2 |
 
 ---
 
 ## 🛤️ Pendente / Próximos passos
 
 ### Curto prazo (próxima sessão)
-1. **Configurar Resend SMTP** — destrava emails ilimitados (5min)
-2. **Testar fluxo coach end-to-end** — login, ver atletas, aplicar Modo Caverna em atleta novo, edição
-3. **Substituir email temp pelo email real do Vitor** quando chegar
-4. **Renomear projeto Vercel** de `web` para `modo-caverna` (URL `modo-caverna.vercel.app`)
+1. Mergear PR #2 (editor de dieta) se ainda aberto
+2. **Refatorar `app/dieta/page.tsx` pra ler do banco** — atleta ainda vê seed de `protocol.ts` na dieta (gap parecido com o que foi resolvido no treino)
+3. Migrar `mealLog` Zustand → Supabase (cross-device sync)
+4. Migrar `wellness` Zustand → Supabase (água + suplementos)
+5. Regenerar `database.types.ts` + remover `as never` casts + remover `ignoreBuildErrors`
+6. **Renomear projeto Vercel** de `web` para `modo-caverna` (URL `modo-caverna.vercel.app`)
 
 ### Médio prazo (features que faltam)
-1. **Coach edita planos** — atualmente coach só pode "aplicar Modo Caverna" (clone do PDF). Falta editar exercício individual, séries, reps, descanso, ordem; cadastrar variações de exercício e alimento; ajustar macros-alvo.
-2. **Migrar Zustand → Supabase** — workoutSession, mealLog, wellness ainda usam localStorage. Migrar pra Supabase pra:
-   - Compartilhar dados entre dispositivos do mesmo usuário
-   - Coach ver registros em tempo real
-   - Não perder dados ao limpar cache
-3. **Snapshot de planos em sessões** — quando atleta inicia treino, gravar `plan_snapshot` JSONB pra manter histórico imutável mesmo se coach editar plano depois (CDD-06)
-4. **Idempotency client_id** nas mutations de set_logs — necessário pra retry offline sem duplicar
-5. **Notificações push** (Web Push API) — alertas pra refeições, suplementos, fim do treino
-6. **Comparativo de fotos** before/after — escolher 2 datas e ver lado-a-lado
+1. ~~**Coach edita planos**~~ ✅ Sprint 2 resolveu treino + dieta. Pendente: reorder de exercícios, variações por atleta (`exercise_variations`, `food_variations`)
+2. **Snapshot de planos em sessões** — quando atleta inicia treino, gravar `plan_snapshot` JSONB pra manter histórico imutável mesmo se coach editar plano depois (CDD-06 — parcialmente feito)
+3. **Idempotency client_id** nas mutations de set_logs — necessário pra retry offline sem duplicar (parcial)
+4. **Notificações push** (Web Push API) — alertas pra refeições, suplementos, fim do treino
+5. **Comparativo de fotos** before/after — escolher 2 datas e ver lado-a-lado
 
 ### Longo prazo / nice-to-have
 - Multi-plano (cutting/bulking) por atleta
