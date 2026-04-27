@@ -22,3 +22,15 @@ next-env.d.ts
 Captura de Tela*.png
 Screenshot*.png
 *.screenshot.png
+
+# Pasta de prints pra Claude ver (conteúdo gitignored, README versionado)
+/prints/*
+!/prints/README.md
+
+# Artefatos do Playwright MCP
+.playwright-mcp/
+
+# PNGs/JPEGs soltos na raiz (não deve acontecer mais com /prints/)
+/*.png
+/*.jpeg
+/*.jpg
