@@ -2,11 +2,12 @@
 
 import { use, useState } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, Loader2, Dumbbell, UtensilsCrossed, Scale, Camera, Flame, Check } from 'lucide-react';
+import { ChevronLeft, Loader2, Dumbbell, UtensilsCrossed, Scale, Camera, Flame, Check, Pencil, ArrowRight } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AuthGuard } from '@/components/AuthGuard';
 import { Button } from '@ui/button';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useCoachWorkoutPlan } from '@/features/coach/workout/queries';
 
 const dayMonth = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' });
 
@@ -21,6 +22,7 @@ export default function CoachAtletaPage({ params }: { params: Promise<{ workspac
 
 function Content({ workspaceId }: { workspaceId: string }) {
   const qc = useQueryClient();
+  const coachPlan = useCoachWorkoutPlan(workspaceId);
 
   // Verifica se atleta já tem plano ativo
   const planCheck = useQuery({
@@ -220,6 +222,33 @@ function Content({ workspaceId }: { workspaceId: string }) {
           <Kpi icon={<Camera className="size-4 text-ember" />} label="Fotos" value={`${s.photos.length}`} />
         </div>
 
+        {/* Editor do plano de treino */}
+        {coachPlan.data && coachPlan.data.length > 0 ? (
+          <>
+            <h2 className="text-mute text-xs uppercase tracking-widest mb-3">plano de treino</h2>
+            <ul className="space-y-2 mb-6">
+              {coachPlan.data.map((d) => (
+                <li key={d.id}>
+                  <Link
+                    href={`/coach/${workspaceId}/treino/${d.name.toLowerCase()}` as never}
+                    className="flex items-center justify-between rounded-lg bg-cave border border-smoke p-4 hover:border-ember/40 transition-colors active:opacity-80"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Pencil className="size-3 text-ember" />
+                        <span className="text-mute text-[10px] uppercase tracking-widest">Dia {d.day_index + 1}</span>
+                      </div>
+                      <p className="text-bone font-medium">{d.name}</p>
+                      <p className="text-mute text-xs mt-0.5">{d.exercises.length} exerc. · +{d.cardio_minutes}min cardio</p>
+                    </div>
+                    <ArrowRight className="size-4 text-mute" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+
         {/* Treinos recentes */}
         <h2 className="text-mute text-xs uppercase tracking-widest mb-3">treinos da semana</h2>
         {s.sessions.length === 0 ? (
@@ -255,7 +284,7 @@ function Content({ workspaceId }: { workspaceId: string }) {
         ) : null}
 
         <p className="text-mute text-[10px] text-center mt-8 uppercase tracking-widest">
-          Edição de planos chegando em breve
+          Edição de dieta · em breve
         </p>
       </main>
     </div>
