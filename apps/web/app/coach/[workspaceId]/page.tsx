@@ -8,6 +8,7 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { Button } from '@ui/button';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useCoachWorkoutPlan } from '@/features/coach/workout/queries';
+import { useCoachMealPlan } from '@/features/coach/diet/queries';
 
 const dayMonth = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' });
 
@@ -23,6 +24,7 @@ export default function CoachAtletaPage({ params }: { params: Promise<{ workspac
 function Content({ workspaceId }: { workspaceId: string }) {
   const qc = useQueryClient();
   const coachPlan = useCoachWorkoutPlan(workspaceId);
+  const mealPlan = useCoachMealPlan(workspaceId);
 
   // Verifica se atleta já tem plano ativo
   const planCheck = useQuery({
@@ -249,6 +251,29 @@ function Content({ workspaceId }: { workspaceId: string }) {
           </>
         ) : null}
 
+        {/* Editor de dieta */}
+        {mealPlan.data ? (
+          <>
+            <h2 className="text-mute text-xs uppercase tracking-widest mb-3">plano de dieta</h2>
+            <Link
+              href={`/coach/${workspaceId}/dieta` as never}
+              className="flex items-center justify-between rounded-lg bg-cave border border-smoke p-4 hover:border-ember/40 transition-colors active:opacity-80 mb-6"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <Pencil className="size-3 text-ember" />
+                  <span className="text-mute text-[10px] uppercase tracking-widest">{mealPlan.data.meals.length} refeições</span>
+                </div>
+                <p className="text-bone font-medium">{mealPlan.data.name}</p>
+                <p className="text-mute text-xs mt-0.5">
+                  {mealPlan.data.kcal_target ?? '—'} kcal · P{mealPlan.data.protein_g ?? '—'} C{mealPlan.data.carb_g ?? '—'} G{mealPlan.data.fat_g ?? '—'}
+                </p>
+              </div>
+              <ArrowRight className="size-4 text-mute" />
+            </Link>
+          </>
+        ) : null}
+
         {/* Treinos recentes */}
         <h2 className="text-mute text-xs uppercase tracking-widest mb-3">treinos da semana</h2>
         {s.sessions.length === 0 ? (
@@ -283,9 +308,6 @@ function Content({ workspaceId }: { workspaceId: string }) {
           </>
         ) : null}
 
-        <p className="text-mute text-[10px] text-center mt-8 uppercase tracking-widest">
-          Edição de dieta · em breve
-        </p>
       </main>
     </div>
   );
